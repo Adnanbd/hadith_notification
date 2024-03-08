@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:hadith_notification/models/single.hadith.details.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SharedPreferencesService {
   // Obtain SharedPreferences instance
   Future<SharedPreferences> _getInstance() async => await SharedPreferences.getInstance();
+  static const _hadithListKey = 'saved_hadith_list';
+
 
   // Create/Save (setString)
   Future<bool> setString(String key, String value) async {
@@ -58,6 +61,41 @@ class SharedPreferencesService {
     } else {
       return null;
     }
+  }
+
+  Future<void> saveHadithList(List<SingleHadithDetailModel> hadiths) async {
+    final prefs = await _getInstance();
+
+    // Convert your list of models into a list of JSON strings
+    List<String> hadithJsonList = hadiths.map((hadith) => jsonEncode(hadith.toJson())).toList();
+
+    // Store the encoded JSON list in SharedPreferences
+    await prefs.setStringList(_hadithListKey, hadithJsonList);
+  }
+
+  // Method to retrieve the list 
+  Future<List<SingleHadithDetailModel>> loadHadithList() async {
+    final prefs = await _getInstance();
+
+    // Get the stored list as a list of strings
+    List<String> hadithJsonList = prefs.getStringList(_hadithListKey) ?? [];
+
+    // Decode each JSON string and create a list of models 
+    List<SingleHadithDetailModel> hadiths = hadithJsonList.map((jsonStr) =>
+          SingleHadithDetailModel.fromJson(jsonDecode(jsonStr))).toList();
+
+    return hadiths;
+  }
+
+  Future<void> addSingleHadith(SingleHadithDetailModel hadith) async {
+    // Retrieve existing hadiths
+    List<SingleHadithDetailModel> existingHadiths = await loadHadithList();
+
+    // Add the new hadith to the list
+    existingHadiths.add(hadith);
+
+    // Save the updated list
+    await saveHadithList(existingHadiths);
   }
 
   // ... methods for bool, double, etc. if needed
